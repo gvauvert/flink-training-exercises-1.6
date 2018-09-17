@@ -16,7 +16,6 @@
 
 package com.dataartisans.flinktraining.exercises.datastream_java.windows;
 
-import org.apache.flink.api.common.functions.AggregateFunction;
 import org.apache.flink.api.common.functions.ReduceFunction;
 import org.apache.flink.api.java.tuple.Tuple3;
 import org.apache.flink.api.java.utils.ParameterTool;
@@ -43,7 +42,7 @@ import com.dataartisans.flinktraining.exercises.datastream_java.utils.ExerciseBa
  * Parameters:
  * -input path-to-input-file
  */
-public class HourlyTipsExercise extends ExerciseBase {
+public class HourlyTipsExerciseGoodReduce extends ExerciseBase {
 
     public static void main(String[] args) throws Exception {
 

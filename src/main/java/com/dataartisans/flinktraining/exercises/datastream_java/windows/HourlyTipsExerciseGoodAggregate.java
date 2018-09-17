@@ -17,7 +17,6 @@
 package com.dataartisans.flinktraining.exercises.datastream_java.windows;
 
 import org.apache.flink.api.common.functions.AggregateFunction;
-import org.apache.flink.api.common.functions.ReduceFunction;
 import org.apache.flink.api.java.tuple.Tuple3;
 import org.apache.flink.api.java.utils.ParameterTool;
 import org.apache.flink.streaming.api.TimeCharacteristic;
@@ -43,7 +42,7 @@ import com.dataartisans.flinktraining.exercises.datastream_java.utils.ExerciseBa
  * Parameters:
  * -input path-to-input-file
  */
-public class HourlyTipsExercise extends ExerciseBase {
+public class HourlyTipsExerciseGoodAggregate extends ExerciseBase {
 
     public static void main(String[] args) throws Exception {
 
@@ -65,12 +64,10 @@ public class HourlyTipsExercise extends ExerciseBase {
         SingleOutputStreamOperator<Tuple3<Long, Long, Float>> hourDriveIdTipSum = fares.
                 keyBy(taxiFare -> taxiFare.driverId).
                 window(TumblingEventTimeWindows.of(Time.hours(1))).
-                reduce((ReduceFunction<TaxiFare>) (value1, value2) -> new TaxiFare(value1.rideId, value1.taxiId, value1.driverId, value1.startTime, value1.paymentType, value1.tip + value2.tip,
-                                                                           value1.tolls, value1.totalFare), new ProcessWindowFunction<TaxiFare, Tuple3<Long, Long, Float>, Long, TimeWindow>() {
+                aggregate(new ComputeTipSum(), new ProcessWindowFunction<Float, Tuple3<Long, Long, Float>, Long, TimeWindow>() {
                     @Override
-                    public void process(Long driverId, Context context, Iterable<TaxiFare> elements, Collector<Tuple3<Long, Long, Float>> out)
-                            throws Exception {
-                        out.collect(Tuple3.of(context.window().getEnd(), driverId, elements.iterator().next().tip));
+                    public void process(Long driverId, Context context, Iterable<Float> elements, Collector<Tuple3<Long, Long, Float>> out) throws Exception {
+                        out.collect(Tuple3.of(context.window().getEnd(), driverId, elements.iterator().next()));
                     }
                 });
 
@@ -82,5 +79,28 @@ public class HourlyTipsExercise extends ExerciseBase {
 
         // execute the transformation pipeline
         env.execute("Hourly Tips (java)");
+    }
+
+    public static class ComputeTipSum implements AggregateFunction<TaxiFare, Float, Float> {
+
+        @Override
+        public Float createAccumulator() {
+            return 0.f;
+        }
+
+        @Override
+        public Float add(TaxiFare value, Float accumulator) {
+            return accumulator + value.tip;
+        }
+
+        @Override
+        public Float getResult(Float accumulator) {
+            return accumulator;
+        }
+
+        @Override
+        public Float merge(Float a, Float b) {
+            return a + b;
+        }
     }
 }
